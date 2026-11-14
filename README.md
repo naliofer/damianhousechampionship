@@ -1,4 +1,4 @@
-﻿# Campeonato Damião — Android
+# Campeonato Damião — Android
 
 Aplicativo Android offline em Kotlin, Jetpack Compose e Material 3. Os dados são armazenados localmente em SharedPreferences, como um snapshot JSON versionado.
 

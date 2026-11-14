@@ -1,4 +1,4 @@
-﻿export const initial=()=>({name:'Camp D. House',rounds:4,players:Array.from({length:12},(_,id)=>({id,name:'',deck:''})),teams:[],matches:[],started:false});
+export const initial=()=>({name:'damianhousechampionship',rounds:4,players:Array.from({length:12},(_,id)=>({id,name:'',deck:''})),teams:[],matches:[],started:false});
 export const normalize=s=>s.trim().replace(/\s+/g,' ').toLowerCase();
 export const result=(a,b)=>a===2&&b<2?0:b===2&&a<2?1:2;
 export function draw(players){

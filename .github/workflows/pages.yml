@@ -1,8 +1,8 @@
-﻿name: Publicar PWA no GitHub Pages
+name: Publicar PWA no GitHub Pages
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, master]
     paths: ['web/**', '.github/workflows/pages.yml']
 permissions:
   contents: read
@@ -13,15 +13,28 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
+      - name: Verificar se o GitHub Pages esta habilitado
+        uses: actions/github-script@v8
+        with:
+          script: |
+            try {
+              const { data } = await github.rest.repos.getPages(context.repo);
+              if (data.build_type !== 'workflow') {
+                core.setFailed('Em Settings > Pages > Build and deployment > Source, selecione GitHub Actions e execute este workflow novamente.');
+              }
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              core.setFailed(`GitHub Pages nao habilitado ou indisponivel. Abra https://github.com/${context.repo.owner}/${context.repo.repo}/settings/pages e selecione GitHub Actions em Source. Depois execute este workflow novamente. Se Pages nao estiver disponivel, confira a visibilidade do repositorio e o plano da conta.`);
+            }
       - run: npm test && npm run build
         working-directory: web
       - uses: actions/configure-pages@v5

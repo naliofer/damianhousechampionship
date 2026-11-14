@@ -1,4 +1,4 @@
-﻿package com.campeonato.duplas.model
+package com.campeonato.duplas.model
 
 data class Player(val id: String, val name: String = "", val deck: String = "")
 data class Team(val personA: String, val personB: String, val playerA: String = "", val playerB: String = "") {
@@ -13,7 +13,7 @@ data class Match(
     val legacyScore: Boolean = false
 )
 data class Championship(
-    val name: String = "Damian House - Champ", val rounds: Int = 4,
+    val name: String = "damianhousechampionship", val rounds: Int = 4,
     val players: List<Player> = (1..12).map { Player("player-$it") },
     val teams: List<Team> = emptyList(), val matches: List<Match> = emptyList(),
     val teamsConfirmed: Boolean = false, val started: Boolean = false, val created: Boolean = false

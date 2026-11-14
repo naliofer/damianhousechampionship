@@ -1,8 +1,11 @@
-﻿package com.campeonato.duplas.ui.screens
+package com.campeonato.duplas.ui.screens
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.campeonato.duplas.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -59,7 +62,9 @@ fun ChampionshipApp(repository: ChampionshipRepository) {
     val tabs = listOf("Cadastro", "Duplas", "Confrontos", "Classificação", "Ranking Killer")
     Scaffold(topBar = {
         Column {
-            CenterAlignedTopAppBar(title = { Text(state.name, maxLines = 1) })
+            CenterAlignedTopAppBar(title = { Text(state.name, maxLines = 1) }, navigationIcon = {
+                Image(painterResource(R.drawable.brand_logo), contentDescription = "Logo Damian House", modifier = Modifier.padding(8.dp).size(48.dp))
+            })
             ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
                 tabs.forEachIndexed { index, title -> Tab(selected = tab == index, onClick = { tab = index }, text = { Text(title) }) }
             }

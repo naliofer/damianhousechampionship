@@ -1,4 +1,4 @@
-﻿# Camp D. House — PWA
+# damianhousechampionship — PWA
 
 Módulo independente em `web/`. O Android permanece inalterado. Não depende de servidor de dados, CDN ou serviços pagos. Requer Node.js 22+ para os comandos locais.
 
@@ -17,16 +17,22 @@ Abra http://localhost:8080 no computador. O build gera `web/dist`. Não abra via
 
 1. Quando desejar, envie o projeto a um repositório GitHub. Nenhum commit ou publicação foi realizado por este trabalho.
 2. Em Settings → Pages → Source, escolha GitHub Actions.
-3. O arquivo `.github/workflows/pages.yml` testa, compila e publica apenas `web/dist` em pushes na branch `main` ou manualmente pelo botão Run workflow em Actions. Ajuste a branch se necessário.
+3. O arquivo `.github/workflows/pages.yml` testa, compila e publica apenas `web/dist` em pushes nas branches `main` e `master` ou manualmente pelo botão Run workflow em Actions. Ajuste a branch se necessário.
 4. Abra a URL HTTPS apresentada pelo job, normalmente `https://USUARIO.github.io/REPOSITORIO/`.
 
 Os caminhos relativos suportam a subpasta do repositório. Arquivos Android, APKs, Keystore e credenciais não são publicados pelo workflow.
+
+### Erro `Get Pages site failed` / `HttpError: Not Found`
+
+Habilite o Pages em **Settings > Pages > Build and deployment > Source > GitHub Actions**. Depois abra **Actions > Publicar PWA no GitHub Pages > Run workflow**. Se a opcao Pages estiver indisponivel, confira a visibilidade do repositorio e o plano da conta.
+
+O token padrao `GITHUB_TOKEN` nao permite habilitar o Pages automaticamente pelo parametro `enablement` de `configure-pages`. A configuracao inicial deve ser feita por um administrador do repositorio.
 
 ## Instalar no iPhone
 
 1. Abra a URL HTTPS no Safari.
 2. Compartilhar → Adicionar à Tela de Início → Adicionar. Se houver a opção “Abrir como App”, deixe habilitada.
-3. Abra **Camp D. House** pelo ícone e aguarde “Pronto para uso offline”.
+3. Abra **damianhousechampionship** pelo ícone e aguarde “Pronto para uso offline”.
 4. Cadastre seu campeonato na versão instalada; depois teste fechar e reabrir sem internet.
 
 Manifest standalone, ícone PNG 512×512, metadados Apple, safe areas e campos de 16px foram incluídos. Alvo: Safari/iOS 16.4+. Não houve teste em iPhone físico; a compatibilidade no aparelho precisa ser conferida após a publicação.
