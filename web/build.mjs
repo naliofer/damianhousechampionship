@@ -1,0 +1,1 @@
+﻿import {cp,mkdir} from 'node:fs/promises';await mkdir('dist',{recursive:true});for(const file of ['index.html','style.css','engine.js','app.js','sw.js','manifest.webmanifest','icon.png'])await cp(file,`dist/${file}`);console.log('PWA preparada em web/dist');
