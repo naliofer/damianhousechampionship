@@ -130,6 +130,12 @@ object ChampionshipEngine {
         }
     }
 
+    fun setWalkovers(state: Championship, index: Int, ids: Set<String>): Championship {
+        val match = state.matches[index]
+        require(ids.all { it in state.teams[match.a].playerIds + state.teams[match.b].playerIds })
+        return state.copy(matches = state.matches.mapIndexed { i, m -> if (i == index) m.copy(walkovers = ids.toSet()) else m })
+    }
+
     fun confirmMatch(state: Championship, index: Int, events: List<Elimination>): Championship {
         require(state.started) { "O campeonato ainda não começou." }
         val old = state.matches[index]

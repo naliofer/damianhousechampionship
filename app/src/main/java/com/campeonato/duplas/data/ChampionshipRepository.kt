@@ -73,6 +73,7 @@ object ChampionshipCodec {
         put("matches", JSONArray().apply { state.matches.forEach { m -> put(JSONObject().apply {
             put("round", m.round); put("a", m.a); put("b", m.b); put("result", m.result)
             put("lossesA", m.lossesA); put("lossesB", m.lossesB); put("legacy", m.legacyScore)
+            put("walkovers", JSONArray(m.walkovers.toList()))
             put("events", JSONArray().apply { m.eliminations.forEach { put(JSONObject().put("killer", it.killerId).put("victim", it.victimId)) } })
         }) } })
     }.toString()
@@ -88,7 +89,7 @@ object ChampionshipCodec {
         }
         val matches = root.getJSONArray("matches").mapObjects { m ->
             Match(m.getInt("round"), m.getInt("a"), m.getInt("b"), m.getInt("result"), m.getInt("lossesA"), m.getInt("lossesB"),
-                m.getJSONArray("events").mapObjects { Elimination(it.getString("killer"), it.getString("victim")) }, m.getBoolean("legacy"))
+                m.getJSONArray("events").mapObjects { Elimination(it.getString("killer"), it.getString("victim")) }, m.getBoolean("legacy"), m.optJSONArray("walkovers")?.let { ids -> (0 until ids.length()).map { ids.getString(it) }.toSet() } ?: emptySet())
         }
         return Championship(root.getString("name"), root.getInt("rounds"), players, teams, matches,
             root.getBoolean("confirmed"), root.getBoolean("started"), root.getBoolean("created")).also(::validate)
@@ -114,6 +115,7 @@ object ChampionshipCodec {
         state.matches.forEach { m ->
             require(m.round in 1..state.rounds && m.a in state.teams.indices && m.b in state.teams.indices && m.a != m.b)
             require(m.lossesA in 0..2 && m.lossesB in 0..2 && m.result in -1..2)
+            require(m.walkovers.all { it in state.teams[m.a].playerIds + state.teams[m.b].playerIds })
             ChampionshipEngine.validateEliminations(m, state.teams, m.eliminations)
             if (!m.legacyScore) {
                 require(m.lossesA == m.eliminations.count { it.victimId in state.teams[m.a].playerIds })

@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.stringResource
+import com.campeonato.duplas.R
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.ui.Modifier
@@ -168,6 +170,7 @@ fun ChampionshipApp(repository: ChampionshipRepository) {
                                 if (standing.position == 1) Text(if (finished) "Killer do Campeonato" else "Líder Killer • parcial", color = AppChampion)
                                 Text("${standing.position}º • ${standing.player.name}", style = MaterialTheme.typography.titleMedium)
                                 Text("${Engine.teamLabel(standing.team, state.teams)} • Deck: ${standing.player.deck.ifBlank { "Não informado" }}")
+                                Text("WO: ${state.matches.count { standing.player.id in it.walkovers }}")
                                 Text("${standing.kills} kills • ${standing.deaths} mortes • saldo ${standing.balance}")
                             }
                         }
@@ -181,9 +184,9 @@ fun ChampionshipApp(repository: ChampionshipRepository) {
         text = { Text("Ao confirmar a correção, a classificação e o Ranking Killer serão recalculados. Os próximos confrontos já sorteados serão mantidos.") },
         confirmButton = { TextButton(onClick = { editMatch = index; requestEdit = null }) { Text("Corrigir") } },
         dismissButton = { TextButton(onClick = { requestEdit = null }) { Text("Cancelar") } }) }
-    editMatch?.let { index -> MatchEditor(state, index, onDismiss = { editMatch = null }, onConfirm = { events ->
+    editMatch?.let { index -> MatchEditor(state, index, onDismiss = { editMatch = null }, onSaveWalkovers = { ids -> update { Engine.setWalkovers(it, index, ids) } }, onConfirm = { events, ids ->
         val before = state
-        update { Engine.confirmMatch(it, index, events) }
+        update { Engine.setWalkovers(Engine.confirmMatch(it, index, events), index, ids) }
         if (state != before || error == null) editMatch = null
     }) }
     if (newChampionship) AlertDialog(onDismissRequest = { newChampionship = false }, title = { Text("Criar outro campeonato?") },
@@ -244,6 +247,9 @@ private fun RoundAccordion(round: Int, games: List<Match>, state: Championship, 
                         Text("Placar: ${game.lossesB} × ${game.lossesA}", style = MaterialTheme.typography.titleLarge)
                         Text(when (official) { 0 -> "Vitória: $a"; 1 -> "Vitória: $b"; 2 -> "Empate"; else -> "Resultado pendente" }, color = when (official) { 0, 1 -> AppWin; 2 -> AppChampion; else -> MaterialTheme.colorScheme.onSurface })
                         if (official in 0..1) Text("Derrota: ${if (official == 0) b else a}", color = AppLoss)
+                        (state.teams[game.a].playerIds + state.teams[game.b].playerIds).forEach { id ->
+                            if (id in game.walkovers) Text(state.players.first { it.id == id }.name + " - WO")
+                        }
                         game.eliminations.forEach { event -> Text("${state.players.first { it.id == event.killerId }.name} eliminou ${state.players.first { it.id == event.victimId }.name}") }
                         if (game.legacyScore) Text("Placar antigo: autoria das eliminações não informada.")
                         OutlinedButton(onClick = { onEdit(game) }) { Text(if (game.result == -1) "Registrar eliminações e resultado" else "Corrigir resultado") }
@@ -255,17 +261,18 @@ private fun RoundAccordion(round: Int, games: List<Match>, state: Championship, 
 }
 
 @Composable
-private fun MatchEditor(state: Championship, index: Int, onDismiss: () -> Unit, onConfirm: (List<Elimination>) -> Unit) {
+private fun MatchEditor(state: Championship, index: Int, onDismiss: () -> Unit, onSaveWalkovers: (Set<String>) -> Unit, onConfirm: (List<Elimination>, Set<String>) -> Unit) {
     val match = state.matches[index]
     var events by rememberSaveable(index, stateSaver = listSaver<List<Elimination>, String>(
         save = { it.flatMap { event -> listOf(event.killerId, event.victimId) } },
         restore = { it.chunked(2).map { pair -> Elimination(pair[0], pair[1]) } }
     )) { mutableStateOf(match.eliminations) }
+    var walkovers by rememberSaveable(index) { mutableStateOf(match.walkovers.toList()) }
     var discard by remember { mutableStateOf(false) }
     val players = (state.teams[match.a].playerIds + state.teams[match.b].playerIds).map { id -> state.players.first { it.id == id } }
     val draft = match.copy(lossesA = events.count { it.victimId in state.teams[match.a].playerIds }, lossesB = events.count { it.victimId in state.teams[match.b].playerIds })
     val result = Engine.derivedResult(draft)
-    fun close() { if (events != match.eliminations) discard = true else onDismiss() }
+    fun close() { if (events != match.eliminations || walkovers.toSet() != match.walkovers) discard = true else onDismiss() }
     AlertDialog(onDismissRequest = { close() }, title = { Text(if (match.result == -1) "Registrar partida" else "Corrigir partida") }, text = {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
@@ -274,12 +281,19 @@ private fun MatchEditor(state: Championship, index: Int, onDismiss: () -> Unit, 
                 Text("Para cada jogador, informe quem o eliminou ou marque que não foi eliminado. O placar é calculado pelos registros.")
                 if (match.legacyScore) Text("Ao salvar, os registros abaixo substituirão o placar antigo.")
             }
+            item { TextButton(onClick = { onSaveWalkovers(walkovers.toSet()) }) { Text(stringResource(R.string.wo_save)) } }
             items(players, key = { it.id }) { victim ->
                 val opponentTeam = if (victim.id in state.teams[match.a].playerIds) state.teams[match.b] else state.teams[match.a]
                 val selected = events.find { it.victimId == victim.id }?.killerId
                 Column {
                     HorizontalDivider()
-                    Text(victim.name, style = MaterialTheme.typography.titleMedium)
+                    Text(victim.name + if (victim.id in walkovers) " - WO" else "", style = MaterialTheme.typography.titleMedium)
+                    Row {
+                        Checkbox(checked = victim.id in walkovers, onCheckedChange = { checked ->
+                            walkovers = if (checked) (walkovers + victim.id).distinct() else walkovers - victim.id
+                        })
+                        Text(stringResource(if (victim.id in walkovers) R.string.wo_marked else R.string.wo_mark))
+                    }
                     Text("Deck: ${victim.deck.ifBlank { "Não informado" }}")
                     Row(Modifier.fillMaxWidth().clickable { events = events.filterNot { it.victimId == victim.id } }) {
                         RadioButton(selected == null, onClick = { events = events.filterNot { it.victimId == victim.id } })
@@ -296,7 +310,7 @@ private fun MatchEditor(state: Championship, index: Int, onDismiss: () -> Unit, 
                 }
             }
         }
-    }, confirmButton = { TextButton(onClick = { onConfirm(events) }) { Text(if (match.result == -1) "Confirmar resultado" else "Confirmar correção") } }, dismissButton = { TextButton(onClick = { close() }) { Text("Cancelar") } })
+    }, confirmButton = { TextButton(onClick = { onConfirm(events, walkovers.toSet()) }) { Text(if (match.result == -1) "Confirmar resultado" else "Confirmar correção") } }, dismissButton = { TextButton(onClick = { close() }) { Text("Cancelar") } })
     if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("Descartar alterações?") }, text = { Text("Os registros ainda não confirmados serão descartados.") }, confirmButton = { TextButton(onClick = onDismiss) { Text("Descartar") } }, dismissButton = { TextButton(onClick = { discard = false }) { Text("Continuar editando") } })
 }
 

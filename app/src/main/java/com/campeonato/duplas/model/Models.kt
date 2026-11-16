@@ -10,7 +10,8 @@ data class Match(
     val lossesA: Int = 0, val lossesB: Int = 0,
     val eliminations: List<Elimination> = emptyList(),
     // Legacy totals have no attribution to individual players.
-    val legacyScore: Boolean = false
+    val legacyScore: Boolean = false,
+    val walkovers: Set<String> = emptySet()
 )
 data class Championship(
     val name: String = "damianhousechampionship", val rounds: Int = 4,
